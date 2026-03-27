@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_colors_ext.dart';
 import '../../../core/constants/categories.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../data/models/transaction.dart';
@@ -70,18 +71,18 @@ class TransactionTile extends StatelessWidget {
             if (t.note.isNotEmpty)
               Text(
                 t.note,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textSecondary,
+                  color: context.textSecondary,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               ),
             Text(
               AppDateUtils.formatDate(t.date),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
-                color: AppColors.textSecondary,
+                color: context.textSecondary,
               ),
             ),
           ],

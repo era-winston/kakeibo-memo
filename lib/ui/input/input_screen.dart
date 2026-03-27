@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
@@ -70,7 +71,30 @@ class _InputScreenState extends ConsumerState<InputScreen> {
       await notifier.add(t);
     }
 
-    if (mounted) Navigator.of(context).pop();
+    // 保存成功の触覚フィードバック
+    HapticFeedback.lightImpact();
+
+    if (mounted) {
+      // 成功スナックバー
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline,
+                  color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text(widget.editTarget == null ? '記録しました' : '更新しました'),
+            ],
+          ),
+          backgroundColor: AppColors.primary,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      Navigator.of(context).pop();
+    }
   }
 
   Future<void> _pickDate() async {
@@ -84,9 +108,59 @@ class _InputScreenState extends ConsumerState<InputScreen> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
+  /// 入力内容が初期値から変更されているか
+  bool get _isDirty {
+    final t = widget.editTarget;
+    if (t == null) {
+      // 新規: 何か入力されていれば dirty
+      return _parsedAmount > 0 ||
+          _selectedCategory != null ||
+          _noteCtrl.text.isNotEmpty;
+    }
+    // 編集: 元の値と異なれば dirty
+    return _parsedAmount != t.amount ||
+        _selectedCategory != t.category ||
+        _isIncome != t.isIncome ||
+        _selectedDate != t.date ||
+        _noteCtrl.text.trim() != t.note;
+  }
+
+  Future<bool> _confirmDiscard() async {
+    if (!_isDirty) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('入力内容を破棄しますか？'),
+        content: const Text('保存されていない内容は失われます。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('続ける'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              '破棄する',
+              style: TextStyle(color: AppColors.expense),
+            ),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) async {
+        if (didPop) return;
+        final nav = Navigator.of(context);
+        final ok = await _confirmDiscard();
+        if (ok && mounted) nav.pop();
+      },
+      child: Scaffold(
       appBar: AppBar(
         title: Text(widget.editTarget == null ? '収支を入力' : '編集'),
         actions: [
@@ -200,6 +274,7 @@ class _InputScreenState extends ConsumerState<InputScreen> {
           ],
         ),
       ),
-    );
+      ), // end PopScope child: Scaffold
+    ); // end PopScope
   }
 }

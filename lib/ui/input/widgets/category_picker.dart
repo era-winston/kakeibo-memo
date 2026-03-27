@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_colors_ext.dart';
 import '../../../core/constants/categories.dart';
 
 class CategoryPicker extends StatelessWidget {
@@ -33,19 +35,22 @@ class CategoryPicker extends StatelessWidget {
       itemBuilder: (context, i) {
         final cat = categories[i];
         final isSelected = selected == cat.name;
-        return GestureDetector(
-          onTap: () => onSelected(cat.name),
+        return _ScaleTap(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onSelected(cat.name);
+          },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),
             decoration: BoxDecoration(
               color: isSelected
                   ? (isIncome ? AppColors.incomeLight : AppColors.expenseLight)
-                  : AppColors.surface,
+                  : context.categoryBg,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(
                 color: isSelected
                     ? (isIncome ? AppColors.income : AppColors.expense)
-                    : AppColors.divider,
+                    : context.dividerColor,
                 width: isSelected ? 1.5 : 1,
               ),
             ),
@@ -63,7 +68,7 @@ class CategoryPicker extends StatelessWidget {
                         : FontWeight.w400,
                     color: isSelected
                         ? (isIncome ? AppColors.income : AppColors.expense)
-                        : AppColors.textPrimary,
+                        : context.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -73,6 +78,54 @@ class CategoryPicker extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+// タップ時に 0.93x にスケールダウン → 元に戻るマイクロアニメーション
+class _ScaleTap extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _ScaleTap({required this.child, required this.onTap});
+
+  @override
+  State<_ScaleTap> createState() => _ScaleTapState();
+}
+
+class _ScaleTapState extends State<_ScaleTap>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 80),
+    reverseDuration: const Duration(milliseconds: 150),
+    lowerBound: 0.93,
+    upperBound: 1.0,
+    value: 1.0,
+  );
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _animate() async {
+    await _ctrl.reverse();
+    await _ctrl.forward();
+    widget.onTap();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _animate,
+      child: AnimatedBuilder(
+        animation: _ctrl,
+        builder: (_, child) =>
+            Transform.scale(scale: _ctrl.value, child: child),
+        child: widget.child,
+      ),
     );
   }
 }

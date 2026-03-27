@@ -1,10 +1,10 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
-import '../../../core/constants/app_colors.dart';
+import '../../../core/constants/app_colors_ext.dart';
 import '../../../core/utils/date_utils.dart';
 
 class ExpensePieChart extends StatefulWidget {
-  final Map<String, double> data; // category -> amount
+  final Map<String, double> data;
   final double total;
 
   const ExpensePieChart({
@@ -30,21 +30,42 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
   @override
   Widget build(BuildContext context) {
     if (widget.data.isEmpty) {
-      return const Center(
-        child: Text('支出データがありません',
-            style: TextStyle(color: AppColors.textSecondary)),
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 60),
+        child: Column(
+          children: [
+            Icon(Icons.bar_chart_outlined,
+                size: 56, color: context.textSecondary),
+            const SizedBox(height: 12),
+            Text(
+              '支出データがありません',
+              style: TextStyle(
+                  color: context.textSecondary, fontSize: 15),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '支出を記録するとグラフが表示されます',
+              style:
+                  TextStyle(color: context.textSecondary, fontSize: 13),
+            ),
+          ],
+        ),
       );
     }
 
     final entries = widget.data.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
+    final touched = _touchedIndex >= 0 && _touchedIndex < entries.length
+        ? entries[_touchedIndex]
+        : null;
+
     final sections = List.generate(entries.length, (i) {
       final isTouched = i == _touchedIndex;
       return PieChartSectionData(
         value: entries[i].value,
         color: _colors[i % _colors.length],
-        radius: isTouched ? 70 : 60,
+        radius: isTouched ? 72 : 60,
         showTitle: false,
       );
     });
@@ -52,14 +73,14 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
     return Column(
       children: [
         SizedBox(
-          height: 240,
+          height: 260,
           child: Stack(
             alignment: Alignment.center,
             children: [
               PieChart(
                 PieChartData(
                   sections: sections,
-                  centerSpaceRadius: 60,
+                  centerSpaceRadius: 64,
                   pieTouchData: PieTouchData(
                     touchCallback: (event, response) {
                       setState(() {
@@ -75,58 +96,174 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
                   ),
                 ),
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Text('支出合計',
-                      style: TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary)),
-                  Text(
-                    '¥${AppDateUtils.formatAmount(widget.total)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
+              // 中央: タッチ中はカテゴリ詳細、未タッチは合計
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: touched != null
+                    ? _CenterDetail(
+                        key: ValueKey(touched.key),
+                        label: touched.key,
+                        amount: touched.value,
+                        pct: widget.total > 0
+                            ? touched.value / widget.total * 100
+                            : 0,
+                        color: _colors[_touchedIndex % _colors.length],
+                      )
+                    : _CenterTotal(
+                        key: const ValueKey('total'),
+                        total: widget.total,
+                      ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         // 凡例
         ...List.generate(entries.length, (i) {
           final e = entries[i];
           final pct = widget.total > 0
               ? (e.value / widget.total * 100).toStringAsFixed(1)
               : '0.0';
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-            child: Row(
-              children: [
-                Container(
-                  width: 12, height: 12,
-                  decoration: BoxDecoration(
-                    color: _colors[i % _colors.length],
-                    borderRadius: BorderRadius.circular(3),
+          final isTouched = i == _touchedIndex;
+          return GestureDetector(
+            onTap: () =>
+                setState(() => _touchedIndex = isTouched ? -1 : i),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              decoration: BoxDecoration(
+                color: isTouched
+                    ? _colors[i % _colors.length].withValues(alpha: 0.08)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.symmetric(
+                  vertical: 6, horizontal: 16),
+              child: Row(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    width: isTouched ? 16 : 12,
+                    height: isTouched ? 16 : 12,
+                    decoration: BoxDecoration(
+                      color: _colors[i % _colors.length],
+                      borderRadius: BorderRadius.circular(3),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                    child:
-                        Text(e.key, style: const TextStyle(fontSize: 14))),
-                Text('$pct%',
-                    style: const TextStyle(
-                        color: AppColors.textSecondary, fontSize: 13)),
-                const SizedBox(width: 12),
-                Text('¥${AppDateUtils.formatAmount(e.value)}',
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
-              ],
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      e.key,
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: isTouched
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '$pct%',
+                    style: TextStyle(
+                      color: context.textSecondary,
+                      fontSize: 13,
+                      fontWeight: isTouched
+                          ? FontWeight.w600
+                          : FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '¥${AppDateUtils.formatAmount(e.value)}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: isTouched
+                          ? _colors[i % _colors.length]
+                          : null,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }),
+      ],
+    );
+  }
+}
+
+// ── 中央表示ウィジェット ────────────────────────────────────────────────────────
+
+class _CenterTotal extends StatelessWidget {
+  final double total;
+  const _CenterTotal({super.key, required this.total});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '支出合計',
+          style: TextStyle(fontSize: 11, color: context.textSecondary),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '¥${AppDateUtils.formatAmount(total)}',
+          style: TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.w700,
+            color: context.textPrimary,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CenterDetail extends StatelessWidget {
+  final String label;
+  final double amount;
+  final double pct;
+  final Color color;
+
+  const _CenterDetail({
+    super.key,
+    required this.label,
+    required this.amount,
+    required this.pct,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          '¥${AppDateUtils.formatAmount(amount)}',
+          style: TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: context.textPrimary,
+          ),
+        ),
+        Text(
+          '${pct.toStringAsFixed(1)}%',
+          style: TextStyle(
+            fontSize: 11,
+            color: context.textSecondary,
+          ),
+        ),
       ],
     );
   }

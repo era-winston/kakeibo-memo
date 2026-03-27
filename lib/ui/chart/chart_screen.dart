@@ -19,7 +19,22 @@ class ChartScreen extends ConsumerWidget {
       length: 2,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(AppDateUtils.formatMonth(selectedMonth)),
+          title: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.chevron_left),
+                onPressed: () =>
+                    ref.read(filterProvider.notifier).previousMonth(),
+              ),
+              Text(AppDateUtils.formatMonth(selectedMonth)),
+              IconButton(
+                icon: const Icon(Icons.chevron_right),
+                onPressed: () =>
+                    ref.read(filterProvider.notifier).nextMonth(),
+              ),
+            ],
+          ),
           bottom: const TabBar(
             tabs: [
               Tab(text: '支出内訳'),

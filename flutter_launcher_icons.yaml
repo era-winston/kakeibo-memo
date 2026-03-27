@@ -1,0 +1,22 @@
+flutter_launcher_icons:
+  # iOS
+  ios: true
+  image_path_ios: "assets/icons/app_icon.png"
+  remove_alpha_ios: true
+
+  # Android
+  android: true
+  image_path_android: "assets/icons/app_icon.png"
+
+  # Android アダプティブアイコン (API 26+)
+  adaptive_icon_background: "assets/icons/adaptive_bg.png"
+  adaptive_icon_foreground: "assets/icons/adaptive_fg.png"
+  min_sdk_android: 21
+
+  # Web / Windows / macOS は今回対象外
+  web:
+    generate: false
+  windows:
+    generate: false
+  macos:
+    generate: false
