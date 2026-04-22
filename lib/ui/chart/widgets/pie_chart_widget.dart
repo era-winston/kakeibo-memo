@@ -1,35 +1,33 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors_ext.dart';
+import '../../../core/constants/categories.dart';
 import '../../../core/utils/date_utils.dart';
 
-class ExpensePieChart extends StatefulWidget {
+class CategoryPieChart extends StatefulWidget {
   final Map<String, double> data;
   final double total;
+  /// true = 収入グラフ用ラベル
+  final bool isIncome;
 
-  const ExpensePieChart({
+  const CategoryPieChart({
     super.key,
     required this.data,
     required this.total,
+    this.isIncome = false,
   });
 
   @override
-  State<ExpensePieChart> createState() => _ExpensePieChartState();
+  State<CategoryPieChart> createState() => _CategoryPieChartState();
 }
 
-class _ExpensePieChartState extends State<ExpensePieChart> {
+class _CategoryPieChartState extends State<CategoryPieChart> {
   int _touchedIndex = -1;
-
-  static const _colors = [
-    Color(0xFF2E7D6B), Color(0xFF1976D2), Color(0xFFD32F2F),
-    Color(0xFFFF8F00), Color(0xFF6A1B9A), Color(0xFF00838F),
-    Color(0xFF2E7D32), Color(0xFFC62828), Color(0xFF4527A0),
-    Color(0xFF1565C0), Color(0xFF558B2F),
-  ];
 
   @override
   Widget build(BuildContext context) {
     if (widget.data.isEmpty) {
+      final label = widget.isIncome ? '収入' : '支出';
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 60),
         child: Column(
@@ -38,13 +36,13 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
                 size: 56, color: context.textSecondary),
             const SizedBox(height: 12),
             Text(
-              '支出データがありません',
+              '$labelデータがありません',
               style: TextStyle(
                   color: context.textSecondary, fontSize: 15),
             ),
             const SizedBox(height: 6),
             Text(
-              '支出を記録するとグラフが表示されます',
+              '$labelを記録するとグラフが表示されます',
               style:
                   TextStyle(color: context.textSecondary, fontSize: 13),
             ),
@@ -64,7 +62,7 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
       final isTouched = i == _touchedIndex;
       return PieChartSectionData(
         value: entries[i].value,
-        color: _colors[i % _colors.length],
+        color: AppCategories.colorFor(entries[i].key),
         radius: isTouched ? 72 : 60,
         showTitle: false,
       );
@@ -107,11 +105,12 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
                         pct: widget.total > 0
                             ? touched.value / widget.total * 100
                             : 0,
-                        color: _colors[_touchedIndex % _colors.length],
+                        color: AppCategories.colorFor(touched.key),
                       )
                     : _CenterTotal(
                         key: const ValueKey('total'),
                         total: widget.total,
+                        isIncome: widget.isIncome,
                       ),
               ),
             ],
@@ -125,6 +124,7 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
               ? (e.value / widget.total * 100).toStringAsFixed(1)
               : '0.0';
           final isTouched = i == _touchedIndex;
+          final color = AppCategories.colorFor(e.key);
           return GestureDetector(
             onTap: () =>
                 setState(() => _touchedIndex = isTouched ? -1 : i),
@@ -132,7 +132,7 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
                 color: isTouched
-                    ? _colors[i % _colors.length].withValues(alpha: 0.08)
+                    ? color.withValues(alpha: 0.08)
                     : Colors.transparent,
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -145,7 +145,7 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
                     width: isTouched ? 16 : 12,
                     height: isTouched ? 16 : 12,
                     decoration: BoxDecoration(
-                      color: _colors[i % _colors.length],
+                      color: color,
                       borderRadius: BorderRadius.circular(3),
                     ),
                   ),
@@ -177,9 +177,7 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
                     style: TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 14,
-                      color: isTouched
-                          ? _colors[i % _colors.length]
-                          : null,
+                      color: isTouched ? color : null,
                     ),
                   ),
                 ],
@@ -196,7 +194,8 @@ class _ExpensePieChartState extends State<ExpensePieChart> {
 
 class _CenterTotal extends StatelessWidget {
   final double total;
-  const _CenterTotal({super.key, required this.total});
+  final bool isIncome;
+  const _CenterTotal({super.key, required this.total, this.isIncome = false});
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +203,7 @@ class _CenterTotal extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '支出合計',
+          isIncome ? '収入合計' : '支出合計',
           style: TextStyle(fontSize: 11, color: context.textSecondary),
         ),
         const SizedBox(height: 2),

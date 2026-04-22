@@ -4,43 +4,52 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/date_utils.dart';
 import '../../../data/models/transaction.dart';
 
-class MonthlyBarChart extends StatelessWidget {
-  static final Color _incomeColor = AppColors.income.withValues(alpha: 0.8);
-  static final Color _expenseColor = AppColors.expense.withValues(alpha: 0.8);
-
+class MonthlyBarChart extends StatefulWidget {
   final List<Transaction> allTransactions;
 
   const MonthlyBarChart({super.key, required this.allTransactions});
 
   @override
+  State<MonthlyBarChart> createState() => _MonthlyBarChartState();
+}
+
+class _MonthlyBarChartState extends State<MonthlyBarChart> {
+  static final Color _incomeColor = AppColors.income.withValues(alpha: 0.8);
+  static final Color _expenseColor = AppColors.expense.withValues(alpha: 0.8);
+
+  int _monthCount = 6; // 3, 6, 12
+
+  @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final months = List.generate(6,
-        (i) => DateTime(now.year, now.month - 5 + i));
+    final months = List.generate(
+        _monthCount, (i) => DateTime(now.year, now.month - (_monthCount - 1) + i));
 
+    // Pre-group transactions into a month-keyed map for O(N+M) vs O(N×M)
+    final totals = <String, (double, double)>{};
+    for (final t in widget.allTransactions) {
+      final key = '${t.date.year}-${t.date.month}';
+      final (inc, exp) = totals[key] ?? (0.0, 0.0);
+      totals[key] = t.isIncome ? (inc + t.amount, exp) : (inc, exp + t.amount);
+    }
+
+    final barWidth = _monthCount <= 6 ? 14.0 : 8.0;
     final groups = List.generate(months.length, (i) {
       final m = months[i];
-      final monthly = allTransactions.where(
-          (t) => t.date.year == m.year && t.date.month == m.month);
-      final inc = monthly
-          .where((t) => t.isIncome)
-          .fold(0.0, (s, t) => s + t.amount);
-      final exp = monthly
-          .where((t) => !t.isIncome)
-          .fold(0.0, (s, t) => s + t.amount);
+      final (inc, exp) = totals['${m.year}-${m.month}'] ?? (0.0, 0.0);
       return BarChartGroupData(
         x: i,
         barRods: [
           BarChartRodData(
             toY: inc,
             color: _incomeColor,
-            width: 14,
+            width: barWidth,
             borderRadius: BorderRadius.circular(4),
           ),
           BarChartRodData(
             toY: exp,
             color: _expenseColor,
-            width: 14,
+            width: barWidth,
             borderRadius: BorderRadius.circular(4),
           ),
         ],
@@ -53,11 +62,33 @@ class MonthlyBarChart extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _legend(_incomeColor, '収入'),
-              const SizedBox(width: 16),
-              _legend(_expenseColor, '支出'),
+              // 期間切替
+              SegmentedButton<int>(
+                segments: const [
+                  ButtonSegment(value: 3, label: Text('3ヶ月')),
+                  ButtonSegment(value: 6, label: Text('6ヶ月')),
+                  ButtonSegment(value: 12, label: Text('12ヶ月')),
+                ],
+                selected: {_monthCount},
+                onSelectionChanged: (s) => setState(() => _monthCount = s.first),
+                style: SegmentedButton.styleFrom(
+                  textStyle: const TextStyle(fontSize: 12),
+                  visualDensity: VisualDensity.compact,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                showSelectedIcon: false,
+              ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _legend(_incomeColor, '収入'),
+                  const SizedBox(width: 12),
+                  _legend(_expenseColor, '支出'),
+                ],
+              ),
             ],
           ),
           const SizedBox(height: 16),
@@ -77,13 +108,19 @@ class MonthlyBarChart extends StatelessWidget {
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
-                      getTitlesWidget: (v, _) => Text(
-                        '${months[v.toInt()].month}月',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
+                      getTitlesWidget: (v, _) {
+                        final m = months[v.toInt()];
+                        final label = _monthCount <= 6
+                            ? '${m.month}月'
+                            : '${m.year % 100}/${m.month}';
+                        return Text(
+                          label,
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: AppColors.textSecondary,
+                          ),
+                        );
+                      },
                     ),
                   ),
                   leftTitles: const AxisTitles(

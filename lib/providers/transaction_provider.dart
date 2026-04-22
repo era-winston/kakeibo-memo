@@ -29,6 +29,11 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
     ref.invalidateSelf();
   }
 
+  Future<void> deleteAll() async {
+    await _repo.deleteAll();
+    ref.invalidateSelf();
+  }
+
   List<Transaction> getByMonth(List<Transaction> all, int year, int month) {
     return all
         .where((t) => t.date.year == year && t.date.month == month)
@@ -44,6 +49,14 @@ class TransactionNotifier extends AsyncNotifier<List<Transaction>> {
   Map<String, double> expenseByCategory(List<Transaction> monthly) {
     final map = <String, double>{};
     for (final t in monthly.where((t) => !t.isIncome)) {
+      map[t.category] = (map[t.category] ?? 0) + t.amount;
+    }
+    return map;
+  }
+
+  Map<String, double> incomeByCategory(List<Transaction> monthly) {
+    final map = <String, double>{};
+    for (final t in monthly.where((t) => t.isIncome)) {
       map[t.category] = (map[t.category] ?? 0) + t.amount;
     }
     return map;

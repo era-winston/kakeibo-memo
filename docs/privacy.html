@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー - 家計メモ帳</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.8;
+      color: #1f2937;
+      background: #f9fafb;
+      padding: 0 16px;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 48px 0 80px; }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .app-name { color: #6b7280; font-size: 0.95rem; margin-bottom: 32px; }
+    h2 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-top: 32px;
+      margin-bottom: 12px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    p, li { font-size: 0.95rem; color: #374151; }
+    p { margin-bottom: 12px; }
+    ul { padding-left: 1.5em; margin-bottom: 12px; }
+    li { margin-bottom: 4px; }
+    .updated { color: #9ca3af; font-size: 0.85rem; margin-top: 48px; }
+    a { color: #2563eb; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .back { display: inline-block; margin-bottom: 24px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="/" class="back">&larr; トップへ戻る</a>
+    <h1>プライバシーポリシー</h1>
+    <p class="app-name">家計メモ帳（Kakeibo Memo）</p>
+
+    <h2>1. はじめに</h2>
+    <p>
+      本プライバシーポリシーは、家計メモ帳（以下「本アプリ」）における
+      ユーザーの個人情報の取り扱いについて説明するものです。
+      本アプリは、ユーザーのプライバシーを最大限に尊重し、
+      個人情報の保護に努めています。
+    </p>
+
+    <h2>2. データの収集について</h2>
+    <p>
+      本アプリは、<strong>ユーザーの個人情報を一切収集しません。</strong>
+    </p>
+    <ul>
+      <li>アナリティクスツール・広告SDK等の第三者サービスは使用していません</li>
+      <li>ユーザーの利用状況や行動を追跡・記録することはありません</li>
+      <li>外部サーバーへのデータ送信は一切行いません</li>
+    </ul>
+
+    <h2>3. データの保存</h2>
+    <p>
+      本アプリで入力された取引データ、予算設定、テンプレートなどの情報は
+      すべて<strong>ユーザーの端末内にのみ保存</strong>されます。
+    </p>
+    <ul>
+      <li>クラウドサーバーやインターネットを介したデータ同期は行いません</li>
+      <li>データはアプリのローカルストレージ（Hive データベースおよび SharedPreferences）に保存されます</li>
+      <li>他のアプリからこれらのデータにアクセスすることはできません</li>
+    </ul>
+
+    <h2>4. データのエクスポート</h2>
+    <p>
+      本アプリにはCSVエクスポート機能があります。
+      この機能はユーザーが明示的に操作した場合にのみ実行され、
+      端末のOS標準の共有機能を通じてファイルが出力されます。
+      エクスポート先はユーザー自身の選択に委ねられます。
+    </p>
+
+    <h2>5. セキュリティ機能</h2>
+    <p>本アプリには以下のセキュリティ機能があります：</p>
+    <ul>
+      <li><strong>パスコードロック：</strong>4桁のPINコードによるアプリロック機能。PINはSHA-256ハッシュ化して端末内に保存され、平文では保存しません。</li>
+      <li><strong>生体認証：</strong>端末のFace ID / Touch ID / 指紋認証を利用したロック解除。生体情報は端末のOS側で管理され、本アプリが直接取得・保存することはありません。</li>
+    </ul>
+
+    <h2>6. データの削除</h2>
+    <p>
+      ユーザーはいつでもアプリ内の設定画面から「すべてのデータを削除」を実行することで、
+      保存されたすべてのデータを完全に消去できます。
+      また、端末からアプリをアンインストールすることで、
+      すべてのデータが自動的に削除されます。
+    </p>
+
+    <h2>7. 子供のプライバシー</h2>
+    <p>
+      本アプリは特定の年齢層を対象としたものではありませんが、
+      個人情報を一切収集しないため、児童のプライバシーに関するリスクはありません。
+    </p>
+
+    <h2>8. ポリシーの変更</h2>
+    <p>
+      本プライバシーポリシーは、必要に応じて更新される場合があります。
+      重要な変更がある場合は、アプリのアップデートを通じてお知らせします。
+    </p>
+
+    <h2>9. お問い合わせ</h2>
+    <p>
+      本ポリシーに関するご質問やお問い合わせは、
+      以下のメールアドレスまでご連絡ください。
+    </p>
+    <p><a href="mailto:support@kakeibomemo.com">support@kakeibomemo.com</a></p>
+
+    <p class="updated">最終更新日：2026年4月22日</p>
+  </div>
+</body>
+</html>

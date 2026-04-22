@@ -16,7 +16,7 @@ class ChartScreen extends ConsumerWidget {
     final notifier = ref.read(transactionProvider.notifier);
 
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
           title: Row(
@@ -38,6 +38,7 @@ class ChartScreen extends ConsumerWidget {
           bottom: const TabBar(
             tabs: [
               Tab(text: '支出内訳'),
+              Tab(text: '収入内訳'),
               Tab(text: '月次推移'),
             ],
           ),
@@ -49,21 +50,31 @@ class ChartScreen extends ConsumerWidget {
           data: (all) {
             final monthly = notifier.getByMonth(
                 all, selectedMonth.year, selectedMonth.month);
-            final byCategory =
-                notifier.expenseByCategory(monthly);
+            final byExpenseCategory = notifier.expenseByCategory(monthly);
+            final byIncomeCategory = notifier.incomeByCategory(monthly);
             final totalExpense = notifier.totalExpense(monthly);
+            final totalIncome = notifier.totalIncome(monthly);
 
             return TabBarView(
               children: [
-                // 円グラフ
+                // 支出内訳
                 SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: ExpensePieChart(
-                    data: byCategory,
+                  child: CategoryPieChart(
+                    data: byExpenseCategory,
                     total: totalExpense,
                   ),
                 ),
-                // 棒グラフ
+                // 収入内訳
+                SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: CategoryPieChart(
+                    data: byIncomeCategory,
+                    total: totalIncome,
+                    isIncome: true,
+                  ),
+                ),
+                // 月次推移
                 SingleChildScrollView(
                   child: MonthlyBarChart(allTransactions: all),
                 ),

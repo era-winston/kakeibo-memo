@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_colors_ext.dart';
 import '../../core/constants/categories.dart';
 import '../../core/utils/csv_export.dart';
 import '../../core/utils/date_utils.dart';
+import '../../providers/budget_provider.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/recurring_provider.dart';
 import 'passcode_screen.dart';
+
+const _privacyPolicyUrl = 'https://kakeibomemo.com/privacy';
+const _termsUrl = 'https://kakeibomemo.com/terms';
 
 const _themeModeLabels = {
   ThemeMode.system: 'システムに合わせる',
@@ -63,6 +68,14 @@ class SettingsScreen extends ConsumerWidget {
               await CsvExport.exportAndShare(all);
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.delete_forever_outlined,
+                color: AppColors.expense),
+            title: const Text('すべてのデータを削除',
+                style: TextStyle(color: AppColors.expense)),
+            subtitle: const Text('取引・予算・テンプレートを完全に削除します'),
+            onTap: () => _confirmDeleteAll(context, ref),
+          ),
 
           // ── セキュリティ ──────────────────────────────────────
           const _SectionHeader(label: 'セキュリティ'),
@@ -102,6 +115,20 @@ class SettingsScreen extends ConsumerWidget {
 
           // ── アプリについて ────────────────────────────────────
           const _SectionHeader(label: 'アプリについて'),
+          ListTile(
+            leading: const Icon(Icons.description_outlined),
+            title: const Text('プライバシーポリシー'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => launchUrl(Uri.parse(_privacyPolicyUrl),
+                mode: LaunchMode.externalApplication),
+          ),
+          ListTile(
+            leading: const Icon(Icons.gavel_outlined),
+            title: const Text('利用規約'),
+            trailing: const Icon(Icons.open_in_new, size: 18),
+            onTap: () => launchUrl(Uri.parse(_termsUrl),
+                mode: LaunchMode.externalApplication),
+          ),
           const ListTile(
             leading: Icon(Icons.info_outline),
             title: Text('バージョン'),
@@ -114,6 +141,43 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   String _themeModeLabel(ThemeMode m) => _themeModeLabels[m]!;
+
+  Future<void> _confirmDeleteAll(BuildContext context, WidgetRef ref) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('すべてのデータを削除'),
+        content: const Text(
+          'すべての取引データ・予算設定・定期テンプレートが完全に削除されます。\n\nこの操作は取り消せません。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('キャンセル'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('削除する',
+                style: TextStyle(color: AppColors.expense)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !context.mounted) return;
+
+    await ref.read(transactionProvider.notifier).deleteAll();
+    await ref.read(budgetProvider.notifier).clearBudget();
+    // テンプレートを全削除
+    final templates = ref.read(recurringProvider).valueOrNull ?? [];
+    for (final t in templates) {
+      await ref.read(recurringProvider.notifier).remove(t.id);
+    }
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('すべてのデータを削除しました')),
+      );
+    }
+  }
 
   Future<void> _onPasscodeToggle(
       BuildContext context, WidgetRef ref, bool enable) async {
@@ -234,13 +298,30 @@ class _TemplateTile extends ConsumerWidget {
         '${t.isIncome ? '+' : '-'}¥${AppDateUtils.formatAmount(t.amount)}  ${t.category}',
         style: TextStyle(fontSize: 12, color: context.textSecondary),
       ),
-      trailing: IconButton(
-        icon:
-            const Icon(Icons.delete_outline, color: AppColors.textSecondary),
-        onPressed: () => ref
-            .read(recurringProvider.notifier)
-            .remove(t.id),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, color: AppColors.textSecondary),
+            onPressed: () => _showEditTemplateSheet(context, t),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: AppColors.textSecondary),
+            onPressed: () => ref.read(recurringProvider.notifier).remove(t.id),
+          ),
+        ],
       ),
+    );
+  }
+
+  void _showEditTemplateSheet(BuildContext context, RecurringTemplate t) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => _AddTemplateSheet(editTarget: t),
     );
   }
 }
@@ -248,7 +329,8 @@ class _TemplateTile extends ConsumerWidget {
 // ── テンプレート追加シート ────────────────────────────────────────────────────
 
 class _AddTemplateSheet extends ConsumerStatefulWidget {
-  const _AddTemplateSheet();
+  final RecurringTemplate? editTarget;
+  const _AddTemplateSheet({this.editTarget});
 
   @override
   ConsumerState<_AddTemplateSheet> createState() =>
@@ -256,11 +338,15 @@ class _AddTemplateSheet extends ConsumerStatefulWidget {
 }
 
 class _AddTemplateSheetState extends ConsumerState<_AddTemplateSheet> {
-  final _labelCtrl = TextEditingController();
-  final _amountCtrl = TextEditingController();
-  final _noteCtrl = TextEditingController();
-  bool _isIncome = false;
-  String? _category;
+  late final _labelCtrl = TextEditingController(text: widget.editTarget?.label ?? '');
+  late final _amountCtrl = TextEditingController(
+    text: widget.editTarget != null ? widget.editTarget!.amount.toInt().toString() : '',
+  );
+  late final _noteCtrl = TextEditingController(text: widget.editTarget?.note ?? '');
+  late bool _isIncome = widget.editTarget?.isIncome ?? false;
+  late String? _category = widget.editTarget?.category;
+
+  bool get _isEditing => widget.editTarget != null;
 
   bool get _isValid {
     final v = double.tryParse(_amountCtrl.text);
@@ -269,14 +355,18 @@ class _AddTemplateSheetState extends ConsumerState<_AddTemplateSheet> {
 
   Future<void> _submit() async {
     final t = RecurringTemplate(
-      id: const Uuid().v4(),
+      id: widget.editTarget?.id ?? const Uuid().v4(),
       label: _labelCtrl.text.trim(),
       amount: double.parse(_amountCtrl.text),
       category: _category!,
       isIncome: _isIncome,
       note: _noteCtrl.text.trim(),
     );
-    await ref.read(recurringProvider.notifier).add(t);
+    if (_isEditing) {
+      await ref.read(recurringProvider.notifier).updateTemplate(t);
+    } else {
+      await ref.read(recurringProvider.notifier).add(t);
+    }
     if (mounted) Navigator.pop(context);
   }
 
@@ -304,9 +394,9 @@ class _AddTemplateSheetState extends ConsumerState<_AddTemplateSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('テンプレートを追加',
+          Text(_isEditing ? 'テンプレートを編集' : 'テンプレートを追加',
               style:
-                  TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
+                  const TextStyle(fontSize: 17, fontWeight: FontWeight.w600)),
           const SizedBox(height: 16),
 
           // 名前
@@ -413,7 +503,7 @@ class _AddTemplateSheetState extends ConsumerState<_AddTemplateSheet> {
               backgroundColor: AppColors.primary,
               minimumSize: const Size.fromHeight(48),
             ),
-            child: const Text('追加する'),
+            child: Text(_isEditing ? '更新する' : '追加する'),
           ),
         ],
       ),

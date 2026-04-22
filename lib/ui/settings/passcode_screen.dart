@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,14 +22,31 @@ class _PasscodeLockScreenState extends ConsumerState<PasscodeLockScreen> {
   bool _shake = false;
   final _localAuth = LocalAuthentication();
 
+  // 試行回数制限
+  int _failCount = 0;
+  bool _locked = false;       // 30秒ロック中
+  bool _permanentLock = false; // 10回失敗で完全ロック
+  int _lockSecondsLeft = 0;
+  Timer? _lockTimer;
+
+  static const _softLockThreshold = 5;   // 5回失敗→30秒ロック
+  static const _hardLockThreshold = 10;  // 10回失敗→完全ロック
+  static const _softLockDuration = 30;   // 秒
+
   @override
   void initState() {
     super.initState();
-    // 起動直後に生体認証を試みる
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryBiometrics());
   }
 
+  @override
+  void dispose() {
+    _lockTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _tryBiometrics() async {
+    if (_locked || _permanentLock) return;
     try {
       final canCheck = await _localAuth.canCheckBiometrics;
       if (!canCheck) return;
@@ -43,13 +61,29 @@ class _PasscodeLockScreenState extends ConsumerState<PasscodeLockScreen> {
         HapticFeedback.lightImpact();
         widget.onUnlocked();
       }
-    } catch (_) {
-      // 生体認証未対応端末はパスコード入力にフォールバック
-    }
+    } catch (_) {}
+  }
+
+  void _startSoftLock() {
+    setState(() {
+      _locked = true;
+      _lockSecondsLeft = _softLockDuration;
+    });
+    _lockTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) { t.cancel(); return; }
+      setState(() => _lockSecondsLeft--);
+      if (_lockSecondsLeft <= 0) {
+        t.cancel();
+        setState(() {
+          _locked = false;
+          _entered = '';
+        });
+      }
+    });
   }
 
   Future<void> _onDigit(String d) async {
-    if (_entered.length >= 4) return;
+    if (_locked || _permanentLock || _entered.length >= 4) return;
     setState(() => _entered += d);
     HapticFeedback.selectionClick();
 
@@ -59,7 +93,13 @@ class _PasscodeLockScreenState extends ConsumerState<PasscodeLockScreen> {
         HapticFeedback.lightImpact();
         widget.onUnlocked();
       } else {
+        _failCount++;
         await _shakeAndReset();
+        if (_failCount >= _hardLockThreshold) {
+          setState(() => _permanentLock = true);
+        } else if (_failCount >= _softLockThreshold) {
+          _startSoftLock();
+        }
       }
     }
   }
@@ -68,20 +108,47 @@ class _PasscodeLockScreenState extends ConsumerState<PasscodeLockScreen> {
     HapticFeedback.vibrate();
     setState(() => _shake = true);
     await Future.delayed(const Duration(milliseconds: 500));
-    setState(() {
-      _shake = false;
-      _entered = '';
-    });
+    if (mounted) setState(() { _shake = false; _entered = ''; });
   }
 
   void _onDelete() {
-    if (_entered.isEmpty) return;
+    if (_locked || _permanentLock || _entered.isEmpty) return;
     setState(() => _entered = _entered.substring(0, _entered.length - 1));
     HapticFeedback.selectionClick();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_permanentLock) {
+      return const Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.lock_outline, size: 56, color: AppColors.expense),
+                  SizedBox(height: 16),
+                  Text(
+                    'アクセスが無効になりました',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 8),
+                  Text(
+                    '試行回数が上限（$_hardLockThreshold回）に達しました。\nアプリを再インストールしてください。',
+                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       body: SafeArea(
         child: Column(
@@ -91,19 +158,43 @@ class _PasscodeLockScreenState extends ConsumerState<PasscodeLockScreen> {
               'パスコードを入力',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
             ),
+            if (_failCount > 0 && !_locked)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '残り${_hardLockThreshold - _failCount}回',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _failCount >= _softLockThreshold
+                        ? AppColors.expense
+                        : AppColors.textSecondary,
+                  ),
+                ),
+              ),
             const SizedBox(height: 40),
-            // ドットインジケーター
             _ShakeWidget(
               shake: _shake,
               child: _PinDots(filled: _entered.length),
             ),
+            if (_locked) ...[
+              const SizedBox(height: 24),
+              Text(
+                '$_lockSecondsLeft秒後に再試行できます',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.expense,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
             const Spacer(),
-            // テンキー
-            _Numpad(onDigit: _onDigit, onDelete: _onDelete),
+            _Numpad(
+              onDigit: _locked || _permanentLock ? (_) {} : _onDigit,
+              onDelete: _locked || _permanentLock ? () {} : _onDelete,
+            ),
             const SizedBox(height: 16),
-            // 生体認証ボタン
             TextButton.icon(
-              onPressed: _tryBiometrics,
+              onPressed: _locked || _permanentLock ? null : _tryBiometrics,
               icon: const Icon(Icons.fingerprint, size: 22),
               label: const Text('Face ID / Touch ID'),
               style: TextButton.styleFrom(

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>家計メモ帳 - Kakeibo Memo</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      line-height: 1.8;
+      color: #1f2937;
+      background: #f9fafb;
+      padding: 0 16px;
+    }
+    .container { max-width: 720px; margin: 0 auto; padding: 48px 0 80px; text-align: center; }
+    .icon { font-size: 4rem; margin-bottom: 16px; }
+    h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 8px; }
+    .tagline { color: #6b7280; font-size: 1rem; margin-bottom: 48px; }
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px;
+      text-align: left;
+      margin-bottom: 48px;
+    }
+    .feature {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .feature-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .feature h3 { font-size: 0.95rem; font-weight: 600; margin-bottom: 4px; }
+    .feature p { font-size: 0.85rem; color: #6b7280; }
+    .links { margin-top: 32px; }
+    .links a {
+      color: #2563eb;
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin: 0 16px;
+    }
+    .links a:hover { text-decoration: underline; }
+    .contact {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 0.85rem;
+      color: #9ca3af;
+    }
+    .contact a { color: #6b7280; text-decoration: none; }
+    .contact a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="icon">&#128181;</div>
+    <h1>家計メモ帳</h1>
+    <p class="tagline">シンプル・広告なし・オフライン・買い切り</p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">&#9889;</div>
+        <h3>シンプル入力</h3>
+        <p>金額とカテゴリを選ぶだけ。定期テンプレートでさらに時短。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128274;</div>
+        <h3>完全オフライン</h3>
+        <p>データは端末内にのみ保存。クラウドに送信しません。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128202;</div>
+        <h3>グラフで見える化</h3>
+        <p>円グラフ・棒グラフで支出の傾向をひと目で確認。</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">&#128176;</div>
+        <h3>広告なし・買い切り</h3>
+        <p>追加課金やサブスクリプションは一切ありません。</p>
+      </div>
+    </div>
+
+    <div class="links">
+      <a href="/privacy">プライバシーポリシー</a>
+      <a href="/terms">利用規約</a>
+    </div>
+
+    <div class="contact">
+      <p>お問い合わせ: <a href="mailto:support@kakeibomemo.com">support@kakeibomemo.com</a></p>
+    </div>
+  </div>
+</body>
+</html>

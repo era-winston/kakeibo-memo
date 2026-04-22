@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,6 +10,9 @@ import 'ui/settings/passcode_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // オフラインアプリのため、Google Fontsのランタイムダウンロードを無効化
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   await Hive.initFlutter();
   Hive.registerAdapter(TransactionAdapter());

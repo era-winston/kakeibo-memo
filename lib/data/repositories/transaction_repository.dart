@@ -18,6 +18,10 @@ class TransactionRepository {
     await _box.delete(id);
   }
 
+  Future<void> deleteAll() async {
+    await _box.clear();
+  }
+
   List<Transaction> getAll() {
     return _box.values.toList()
       ..sort((a, b) => b.date.compareTo(a.date));

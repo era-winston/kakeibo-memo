@@ -75,6 +75,13 @@ class RecurringNotifier
     state = AsyncData(next);
     await _save(next);
   }
+
+  Future<void> updateTemplate(RecurringTemplate t) async {
+    final current = state.valueOrNull ?? [];
+    final next = current.map((e) => e.id == t.id ? t : e).toList();
+    state = AsyncData(next);
+    await _save(next);
+  }
 }
 
 final recurringProvider =
